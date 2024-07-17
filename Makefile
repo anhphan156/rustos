@@ -1,5 +1,6 @@
 all:
-	cargo build --target x86_64-rustos.json
+	cargo bootimage
 
 run:
 	cargo run
+	#qemu-system-x86_64 -drive format=raw,file=./target/x86_64-rustos/debug/bootimage-rustos.bin
