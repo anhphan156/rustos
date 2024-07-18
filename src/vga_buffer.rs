@@ -1,5 +1,7 @@
-use core::fmt;
+use core::fmt::{self, Write};
 
+use lazy_static::lazy_static;
+use spin::Mutex;
 use volatile::Volatile;
 
 #[allow(dead_code)]
@@ -86,7 +88,27 @@ impl Writer {
         }
     }
 
-    fn new_line(&mut self) {}
+    fn new_line(&mut self) {
+        for row in 1..BUFFER_HEIGHT {
+            for col in 0..BUFFER_WIDTH {
+                let line = self.buffer.chars[row][col].read();
+                self.buffer.chars[row - 1][col].write(line);
+            }
+            self.clear_row(row);
+            self.columnn_position = 0;
+        }
+    }
+
+    fn clear_row(&mut self, row: usize) {
+        let blank = ScreenChar {
+            ascii_character: b' ',
+            color_code: ColorCode::new(Color::Black, Color::Black),
+        };
+
+        for col in 0..BUFFER_WIDTH {
+            self.buffer.chars[row][col].write(blank);
+        }
+    }
 }
 
 impl fmt::Write for Writer {
@@ -96,13 +118,10 @@ impl fmt::Write for Writer {
     }
 }
 
-pub fn print_sth() {
-    use core::fmt::Write;
-    let mut writer = Writer {
+lazy_static! {
+    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         columnn_position: 0,
         color_code: ColorCode::new(Color::Red, Color::White),
         buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
-    };
-
-    write!(writer, "Test {} {}", 42, 1.5).unwrap();
+    });
 }
